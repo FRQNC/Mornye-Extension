@@ -373,6 +373,18 @@ function highestQualityDeezerCoverURL(value) {
   });
 }
 
+// Size-templated variant of a Deezer cover URL: the "WxH" path segment becomes
+// "{size}x{size}" so the app can request a display-sized image for thumbnails.
+// Returns "" for URLs that are not recognisable Deezer CDN cover URLs.
+function deezerCoverTemplate(value) {
+  var url = String(value || "").trim();
+  if (!url || url.indexOf(".dzcdn.net/") === -1) return "";
+  if (!deezerCoverSizePattern.test(url)) return "";
+  return url.replace(deezerCoverSizePattern, function(match, width, height, quality, padding, output, format) {
+    return "/{size}x{size}-" + quality + "-" + padding + "-" + output + "-" + format + ".jpg";
+  });
+}
+
 function coverFromAlbum(album) {
   if (!album) return "";
   return highestQualityDeezerCoverURL(
@@ -668,6 +680,7 @@ function formatTrack(trackData, context) {
     duration_ms: Number(trackData.duration || 0) * 1000,
     preview_url: String(trackData.preview || ""),
     cover_url: coverURL,
+    cover_url_template: deezerCoverTemplate(coverURL),
     images: coverURL,
     release_date: normalizeDate(releaseDate),
     track_number: trackNumber,
@@ -705,6 +718,7 @@ function formatAlbum(albumData, context) {
     external_urls: albumURL,
     external_links: { deezer: albumURL },
     cover_url: coverURL,
+    cover_url_template: deezerCoverTemplate(coverURL),
     images: coverURL,
     release_date: normalizeDate(albumData.release_date || (gatewayAlbum &&
       (gatewayAlbum.PHYSICAL_RELEASE_DATE || gatewayAlbum.DIGITAL_RELEASE_DATE || gatewayAlbum.ORIGINAL_RELEASE_DATE))),
@@ -759,6 +773,7 @@ function formatPlaylist(playlistData) {
     name: String(playlistData.title || ""),
     owner: String((playlistData.creator && playlistData.creator.name) || ""),
     cover_url: coverURL,
+    cover_url_template: deezerCoverTemplate(coverURL),
     images: coverURL,
     total_tracks: Number(playlistData.nb_tracks || 0),
     external_urls: playlistURL,

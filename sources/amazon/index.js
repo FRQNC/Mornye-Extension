@@ -21,7 +21,7 @@ var CONFIG = {
 
 // Logged so an exported log names the running package. Kept equal to
 // manifest.json by tests/amazon_session.test.cjs.
-var EXTENSION_VERSION = "2.3.19";
+var EXTENSION_VERSION = "2.3.20";
 
 var USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
@@ -1103,6 +1103,21 @@ function ensureHighResCoverUrl(url) {
   return fixImageUrl(url);
 }
 
+// Size-templated variant of a cover URL: "._SL{size}_." is added before the
+// file extension so the app can request a display-sized image for thumbnails
+// instead of the unsized master that ensureHighResCoverUrl() returns. Only
+// Amazon's own image hosts get one; anything else returns "".
+var amazonCoverTemplatePattern =
+  /^(https?:\/\/[^\/?#]*(?:media-amazon|ssl-images-amazon)\.com\/[^?#]*?\/[^\/?#.]+)\.(jpe?g|png|webp)([?#].*)?$/i;
+
+function amazonCoverTemplate(url) {
+  var cleaned = fixImageUrl(url);
+  if (!cleaned) return "";
+  var match = amazonCoverTemplatePattern.exec(cleaned);
+  if (!match) return "";
+  return match[1] + "._SL{size}_." + match[2] + (match[3] || "");
+}
+
 function normalizeAmazonDate(value) {
   var text = String(value || "").trim();
   if (!text) return "";
@@ -1788,6 +1803,7 @@ function formatAmazonTrackMetadata(track, album, fallbackTrackNumber) {
     album_url: albumURL,
     duration_ms: Number(track.duration_ms || (track.duration ? track.duration * 1000 : 0)),
     cover_url: ensureHighResCoverUrl(track.cover_url || track.cover_art || album.cover_art || ""),
+    cover_url_template: amazonCoverTemplate(track.cover_url || track.cover_art || album.cover_art || ""),
     release_date: normalizeAmazonDate(track.release_date || album.release_date || album.year || ""),
     track_number: Number(track.track_number || fallbackTrackNumber || 0),
     total_tracks: totalTracks,
@@ -1827,6 +1843,7 @@ function formatAmazonAlbumMetadata(album) {
     artist_id: album.artist_id || "",
     artist_url: album.artist_url || amazonArtistURL(album.artist_id),
     cover_url: ensureHighResCoverUrl(album.cover_art || ""),
+    cover_url_template: amazonCoverTemplate(album.cover_art || ""),
     header_image: ensureHighResCoverUrl(album.header_image || album.cover_art || ""),
     release_date: normalizeAmazonDate(album.release_date || album.year || ""),
     total_tracks: Number(album.track_count || album.total_tracks || 0),
@@ -2934,6 +2951,7 @@ function parseSearchResults(data, filter) {
             artists: trackArtist,
             duration_ms: trackDuration * 1000,
             cover_url: trackImage,
+            cover_url_template: amazonCoverTemplate(trackImage),
             album_id: trackAlbumId,
             album_url: amazonAlbumURL(trackAlbumId),
             comment: amazonAlbumURL(trackAlbumId),
@@ -2968,6 +2986,7 @@ function parseSearchResults(data, filter) {
               name: albumTitle,
               artists: albumArtist,
               cover_url: albumImage,
+              cover_url_template: amazonCoverTemplate(albumImage),
               album_url: amazonAlbumURL(aId),
               external_urls: amazonAlbumURL(aId),
               comment: amazonAlbumURL(aId),
@@ -3025,6 +3044,7 @@ function parseSearchResults(data, filter) {
               id: plId,
               name: plTitle,
               cover_url: plImage,
+              cover_url_template: amazonCoverTemplate(plImage),
               external_urls: ((_currentContext && _currentContext.musicBaseURL) || CONFIG.musicBaseURL) + "/playlists/" + plId,
               provider_id: "amazon"
             });
@@ -3070,6 +3090,7 @@ function parseSearchResults(data, filter) {
               artists: tArt,
               duration_ms: tDur * 1000,
               cover_url: tImg,
+              cover_url_template: amazonCoverTemplate(tImg),
               album_id: tInfo ? tInfo.albumId || "" : "",
               album_url: amazonAlbumURL(tInfo ? tInfo.albumId || "" : ""),
               comment: amazonAlbumURL(tInfo ? tInfo.albumId || "" : ""),

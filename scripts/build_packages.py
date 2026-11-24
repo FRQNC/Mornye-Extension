@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def package(source):
-    manifest = json.loads((source / "manifest.json").read_text())
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     filenames = ["manifest.json", "index.js"]
     licenses = ["LICENSE", "COPYING", "NOTICE"]
     icon = manifest.get("icon")
@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
     providers = args.providers or sorted(path.name for path in (ROOT / "sources").iterdir() if path.is_dir())
     registry_path = ROOT / "registry.json"
-    registry = json.loads(registry_path.read_text())
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00Z")
     changed = False
     stale = []
@@ -57,7 +57,7 @@ def main():
         if Path(provider).name != provider or provider in (".", ".."):
             parser.error(f"Invalid provider directory: {provider}")
         source = ROOT / "sources" / provider
-        manifest = json.loads((source / "manifest.json").read_text())
+        manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
         matches = [entry for entry in registry["extensions"] if entry["id"] == manifest["name"]]
         if len(matches) != 1:
             parser.error(f"Expected one registry entry for {manifest['name']}")

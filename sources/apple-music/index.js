@@ -524,6 +524,18 @@ function artworkURL(artwork, size) {
   return artwork.url.replace("{w}", String(size)).replace("{h}", String(size));
 }
 
+// Size-templated variant of artworkURL(): same artwork, but "{size}" is left
+// in place of the square dimensions so the app can request a display-sized
+// image (list thumbnails) instead of the 3000px+ file used for downloads.
+// Only emitted when the URL has both placeholders, so the app never receives
+// a template it cannot fill.
+function artworkTemplate(artwork) {
+  if (!artwork || !artwork.url) return "";
+  var url = String(artwork.url);
+  if (url.indexOf("{w}") < 0 || url.indexOf("{h}") < 0) return "";
+  return url.replace("{w}", "{size}").replace("{h}", "{size}");
+}
+
 function previewURL(attributes) {
   var previews = attributes && attributes.previews;
   if (!Array.isArray(previews) || previews.length === 0) return "";
@@ -791,6 +803,7 @@ function formatSong(song, albumData, totalDiscsOverride) {
   // Use square artwork for images (UI display + download embedding).
   // tallArtworkURL is kept for future use when UI supports tall containers.
   var coverURL = artworkURL(attr.artwork);
+  var coverTemplate = artworkTemplate(attr.artwork);
   var albumID = "";
   var albumName = attr.albumName || "";
 
@@ -803,7 +816,10 @@ function formatSong(song, albumData, totalDiscsOverride) {
   if (albumData) {
     albumID = albumData.id || albumID;
     albumName = albumAttr.name || albumName;
-    if (!coverURL) coverURL = artworkURL(albumAttr.artwork);
+    if (!coverURL) {
+      coverURL = artworkURL(albumAttr.artwork);
+      coverTemplate = artworkTemplate(albumAttr.artwork);
+    }
   }
 
   var artistResource = firstRelationshipItem(song, "artists") ||
@@ -827,6 +843,7 @@ function formatSong(song, albumData, totalDiscsOverride) {
     preview_url: previewURL(attr),
     images: coverURL,
     cover_url: coverURL,
+    cover_url_template: coverTemplate,
     release_date: albumAttr.releaseDate || attr.releaseDate || "",
     track_number: attr.trackNumber || 0,
     total_tracks: albumAttr.trackCount || 0,
@@ -869,6 +886,7 @@ function formatAlbumInfo(album) {
 
   // Use square artwork — tall artwork causes 3:4 covers in downloaded files.
   var coverURL = artworkURL(attr.artwork);
+  var coverTemplate = artworkTemplate(attr.artwork);
   var editorialVideo = attr.editorialVideo;
   var headerVideo = motionArtworkVideoURL(editorialVideo);
   var headerImage = motionArtworkPreviewURL(editorialVideo) || coverURL;
@@ -881,6 +899,7 @@ function formatAlbumInfo(album) {
     artist_url: firstArtistURL,
     images: coverURL,
     cover_url: coverURL,
+    cover_url_template: coverTemplate,
     header_image: headerImage,
     header_video: headerVideo,
     release_date: attr.releaseDate || "",
@@ -1398,6 +1417,7 @@ function formatArtistAlbums(items, artistID, artistAttributes) {
       artist_id: artistID,
       artist_url: artistAttributes.url || "",
       cover_url: artworkURL(attr.artwork),
+      cover_url_template: artworkTemplate(attr.artwork),
       external_urls: attr.url || "",
       provider_id: "apple-music"
     };
@@ -1480,6 +1500,7 @@ function customSearch(searchQuery, options) {
         name: albAttr.name || "",
         artists: albAttr.artistName || "",
         cover_url: artworkURL(albAttr.artwork),
+        cover_url_template: artworkTemplate(albAttr.artwork),
         images: artworkURL(albAttr.artwork),
         release_date: albAttr.releaseDate || "",
         total_tracks: albAttr.trackCount || 0,
@@ -1532,6 +1553,7 @@ function customSearch(searchQuery, options) {
         owner: plAttr.curatorName || "",
         description: playlistDescription,
         cover_url: artworkURL(plAttr.artwork),
+        cover_url_template: artworkTemplate(plAttr.artwork),
         images: artworkURL(plAttr.artwork),
         external_urls: plAttr.url || "",
         item_type: "playlist",

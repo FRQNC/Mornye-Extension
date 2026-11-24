@@ -210,6 +210,12 @@ function imageURL(imageID, size) {
   return CONFIG.resourceBaseURL + "/images/" + normalizedID.replace(/-/g, "/") + "/" + normalizedSize + ".jpg";
 }
 
+// Size-templated variant of imageURL(): "{size}x{size}" is left in place of the
+// dimensions so the app can request a display-sized image for thumbnails.
+function imageTemplate(imageID) {
+  return imageURL(imageID, "{size}x{size}");
+}
+
 function joinArtistNames(artists) {
   if (!artists || !artists.length) return "";
 
@@ -2013,6 +2019,7 @@ function formatTrack(track, context) {
     album_url: albumURL,
     duration_ms: Number(track.duration || 0) * 1000,
     cover_url: imageURL(album.cover || "", "1280x1280"),
+    cover_url_template: imageTemplate(album.cover || ""),
     images: imageURL(album.cover || "", "1280x1280"),
     release_date: normalizeDate(resolvedReleaseDate),
     track_number: Number(track.trackNumber || 0),
@@ -2061,6 +2068,7 @@ function formatAlbumInfo(album, label) {
     album_artist: albumArtistsDisplay(album),
     artist_id: album.artists && album.artists.length ? withPrefix(album.artists[0].id) : "",
     cover_url: imageURL(album.cover || "", "1280x1280"),
+    cover_url_template: imageTemplate(album.cover || ""),
     images: imageURL(album.cover || "", "1280x1280"),
     release_date: normalizeDate(album.releaseDate || ""),
     total_tracks: Number(album.numberOfTracks || 0),
@@ -2109,6 +2117,7 @@ function formatArtistAlbum(album, fallbackType) {
     name: tidalAlbumTitle(album),
     artists: albumArtistsDisplay(album),
     cover_url: imageURL(album.cover || "", "1280x1280"),
+    cover_url_template: imageTemplate(album.cover || ""),
     images: imageURL(album.cover || "", "1280x1280"),
     release_date: normalizeDate(album.releaseDate || ""),
     total_tracks: Number(album.numberOfTracks || 0),
@@ -2149,6 +2158,7 @@ function formatPlaylistInfo(playlist) {
     name: String(playlist.title || ""),
     artists: String(playlist.creator && playlist.creator.name || "TIDAL"),
     cover_url: coverURL,
+    cover_url_template: imageTemplate(firstNonEmpty(playlist.squareImage, playlist.image)),
     images: coverURL,
     total_tracks: Number(playlist.numberOfTracks || 0),
     provider_id: "tidal-web",
